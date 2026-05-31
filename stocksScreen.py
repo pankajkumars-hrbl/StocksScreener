@@ -11,11 +11,18 @@ from reportlab.lib import colors
 
 try:
     from langchain_community.llms import Ollama
-    LLM_AVAILABLE = True
-except ImportError:
-    Ollama = None
-    LLM_AVAILABLE = False
+        LLM_AVAILABLE = True
+    except ImportError:
+        Ollama = None
+        LLM_AVAILABLE = False
 
+    import os
+    try:
+        import openai
+        OPENAI_AVAILABLE = True
+    except Exception:
+        openai = None
+        OPENAI_AVAILABLE = False
 import io
 from datetime import datetime
 
@@ -73,15 +80,41 @@ def get_currency_symbol(currency, ticker):
     return "$"
 
 # --- LOCAL FREE LLM COMPONENT ---
-def run_local_llm(prompt):
-    """Processes financial corpus natively via local Ollama without tokens."""
-    if not LLM_AVAILABLE or Ollama is None:
-        return "Local LLM is unavailable. Install 'langchain-community' and ensure Ollama is configured to enable this feature."
+def run_hosted_llm(prompt):
+    """Call a hosted OpenAI ChatCompletion when `OPENAI_API_KEY` is set."""
+    if not OPENAI_AVAILABLE or openai is None:
+        return "Hosted LLM client is not installed. Install 'openai' to enable hosted LLM support."
+    api_key = os.getenv("OPENAI_API_KEY")
+    if not api_key:
+        return "OPENAI_API_KEY is not set. Configure it to use a hosted LLM."
     try:
-        llm = Ollama(model="llama3", temperature=0.1)
-        return llm.invoke(prompt)
+        openai.api_key = api_key
+        resp = openai.ChatCompletion.create(
+            model="gpt-3.5-turbo",
+            messages=[{"role": "user", "content": prompt}],
+            temperature=0.1,
+            max_tokens=800,
+        )
+        return resp.choices[0].message.content.strip()
     except Exception as e:
-        return f"Local LLM Parsing Offline (Ensure Ollama is running 'llama3'). Error: {str(e)}"
+        return f"Hosted LLM error: {str(e)}"
+
+
+def run_llm(prompt):
+    """Prefer hosted LLM if configured, otherwise fall back to local Ollama if available."""
+    # Prefer hosted OpenAI when API key present
+    if os.getenv("OPENAI_API_KEY") and OPENAI_AVAILABLE:
+        return run_hosted_llm(prompt)
+
+    # Fallback to local Ollama
+    if LLM_AVAILABLE and Ollama is not None:
+        try:
+            llm = Ollama(model="llama3", temperature=0.1)
+            return llm.invoke(prompt)
+        except Exception as e:
+            return f"Local LLM Parsing Offline (Ensure Ollama is running 'llama3'). Error: {str(e)}"
+
+    return "No LLM available. Set OPENAI_API_KEY for hosted LLM or install/run Ollama for local LLM."
 
 # --- COGNITIVE FINANCIAL ENGINE (DATA PROCESSING) ---
 @st.cache_data(ttl=86400)
@@ -433,9 +466,9 @@ else:
             Text Corpus:
             {raw_text}
             """
-            if st.button("⚙️ Execute Local AI Analysis (Ollama)"):
-                with st.spinner("Processing token vectors locally via Ollama..."):
-                    ai_result = run_local_llm(ai_prompt)
+            if st.button("⚙️ Execute AI Analysis"):
+                with st.spinner("Processing via configured LLM..."):
+                    ai_result = run_llm(ai_prompt)
                     st.markdown("### AI Analytical Digest")
                     st.write(ai_result)
 

@@ -1,3 +1,30 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environments
+.venv/
+env/
+venv/
+
+# IDEs
+.vscode/
+.idea/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Streamlit secrets and local DB
+.streamlit/secrets.toml
+equity_radar.db
+
+# Ignore nested repo folder (if present)
+StocksScreener/
+# Test / cache
+.pytest_cache/
+coverage.xml
 __pycache__
 *.pyc
 .equity_radar.db
