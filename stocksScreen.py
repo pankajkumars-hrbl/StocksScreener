@@ -8,18 +8,14 @@ from reportlab.lib.pagesizes import letter
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, HRFlowable
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib import colors
-
-try:
-    from langchain_community.llms import Ollama
-        LLM_AVAILABLE = True
-    except ImportError:
-        Ollama = None
-        LLM_AVAILABLE = False
-
+def main():
+    print("Starting app")
+    LLM_AVAILABLE = True  # ✅ correct indentation
     import os
     try:
         import openai
         OPENAI_AVAILABLE = True
+
     except Exception:
         openai = None
         OPENAI_AVAILABLE = False
